@@ -6,9 +6,7 @@ import time
 from pathlib import Path
 
 
-# ============================================================
 # SECTION : Project Configuration & Program Registry
-# ============================================================
 
 # Define the project root directory and source locations.
 ROOT_DIRECTORY = Path(__file__).resolve().parent
@@ -30,9 +28,7 @@ PROGRAMS = {
 processes = []
 
 
-# ============================================================
 # SECTION : SHM Initialization & Setup
-# ============================================================
 
 def initialize_shm():
     """
@@ -68,9 +64,7 @@ def initialize_shm():
     print("[MAIN] Shared memory initialized successfully.\n")
 
 
-# ============================================================
 # SECTION : Program Launching & Process Registration
-# ============================================================
 
 def launch_program(name):
     """
@@ -112,9 +106,7 @@ def launch_program(name):
     print(f"[MAIN] {name} launched (PID: {process.pid})")
 
 
-# ============================================================
 # SECTION : Process Monitoring & Synchronization
-# ============================================================
 
 def monitor():
     """
@@ -148,10 +140,7 @@ def monitor():
         # Avoid continuous polling and unnecessary CPU usage.
         time.sleep(0.2)
 
-
-# ============================================================
 # SECTION : Process Lifecycle & Teardown
-# ============================================================
 
 def stop_all():
     """
@@ -196,9 +185,7 @@ def stop_all():
     print("[MAIN] All programs have been stopped.")
 
 
-# ============================================================
 # SECTION : Main Execution & Command-Line Interface
-# ============================================================
 
 def main():
     """
