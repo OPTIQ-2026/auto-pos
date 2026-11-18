@@ -1,8 +1,11 @@
 import os
-import fcntl
 import struct
+import sys
+import tempfile
 from contextlib import contextmanager
 from multiprocessing import shared_memory
+
+import portalocker
 
 
 class SharedState:
@@ -46,15 +49,24 @@ class SharedState:
         self.size = offset
 
         # Create or attach to the shared memory segment.
-        self.shm = shared_memory.SharedMemory(
-            name=self.NAME,
-            create=create,
-            size=self.size if create else 0,
-            track=False
-        )
+        shm_options = {
+            "name": self.NAME,
+            "create": create,
+            "size": self.size if create else 0,
+        }
+
+        # Disable automatic resource tracking when supported (Python 3.13+).
+        if sys.version_info >= (3, 13):
+            shm_options["track"] = False
+
+        self.shm = shared_memory.SharedMemory(**shm_options)
+        self._closed = False
 
         # Prepare the interprocess locking directory.
-        self.lock_dir = f"/tmp/{self.NAME}_locks"
+        self.lock_dir = os.path.join(
+            tempfile.gettempdir(),
+            f"{self.NAME}_locks"
+        )
         os.makedirs(self.lock_dir, exist_ok=True)
 
         # Initialize the memory layout or validate an existing segment.
@@ -69,6 +81,7 @@ class SharedState:
         else:
             if bytes(self.shm.buf[:self.HEADER_SIZE]) != self.MAGIC:
                 self.shm.close()
+                self._closed = True
                 raise RuntimeError("Invalid or uninitialized SHM")
 
     # SECTION : SHM Synchronization & Locking
@@ -91,19 +104,19 @@ class SharedState:
 
         import hashlib
 
-        lock_name = hashlib.sha256(key.encode()).hexdigest()
-
+        lock_name = hashlib.sha256(key.encode("utf-8")).hexdigest()
         path = os.path.join(self.lock_dir, lock_name)
 
-        fd = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
+        # Open the lock file without truncating or replacing it.
+        with open(path, "a+b") as lock_file:
+            lock_type = portalocker.LOCK_EX if write else portalocker.LOCK_SH
 
-        try:
-            fcntl.flock(fd, fcntl.LOCK_EX if write else fcntl.LOCK_SH)
-            yield
+            try:
+                portalocker.lock(lock_file, lock_type)
+                yield
 
-        finally:
-            fcntl.flock(fd, fcntl.LOCK_UN)
-            os.close(fd)
+            finally:
+                portalocker.unlock(lock_file)
 
     # SECTION : SHM Low-Level Memory Operations
 
@@ -117,18 +130,15 @@ class SharedState:
             raise TypeError("Value must be a string")
 
         payload = value.encode("utf-8")
-
         capacity = self.VARIABLES[key]
 
         if len(payload) > capacity:
             raise ValueError("Value exceeds allocated memory capacity")
 
         offset = self.offsets[key]
+        self.shm.buf[offset:offset + self.LENGTH_SIZE] = struct.pack("!I", len(payload))
 
-        self.shm.buf[offset:offset + 4] = struct.pack("!I", len(payload))
-
-        start = offset + 4
-
+        start = offset + self.LENGTH_SIZE
         self.shm.buf[start:start + len(payload)] = payload
 
     def _read_raw(self, key):
@@ -138,14 +148,15 @@ class SharedState:
         """
 
         offset = self.offsets[key]
-
-        length = struct.unpack("!I", self.shm.buf[offset:offset + 4])[0]
+        length = struct.unpack(
+            "!I",
+            self.shm.buf[offset:offset + self.LENGTH_SIZE]
+        )[0]
 
         if length > self.VARIABLES[key]:
             raise RuntimeError("Invalid shared memory data")
 
-        start = offset + 4
-
+        start = offset + self.LENGTH_SIZE
         payload = bytes(self.shm.buf[start:start + length])
 
         return payload.decode("utf-8")
@@ -157,6 +168,7 @@ class SharedState:
         Retrieve the current value of a shared variable.
         Multiple processes may access the same variable concurrently.
         """
+
         self._check_key(key)
 
         with self._lock(key, write=False):
@@ -167,6 +179,7 @@ class SharedState:
         Write a new value to a shared variable.
         Acquires exclusive access until the operation is complete.
         """
+
         self._check_key(key)
 
         with self._lock(key, write=True):
@@ -177,13 +190,12 @@ class SharedState:
         Atomically read, modify and write a shared variable.
         Exclusive access is maintained throughout the entire operation.
         """
+
         self._check_key(key)
 
         with self._lock(key, write=True):
-
             current = self._read_raw(key)
             updated = callback(current)
-
             self._write_raw(key, updated)
 
             return updated
@@ -198,12 +210,15 @@ class SharedState:
             raise KeyError(f"Unknown shared variable: {key}")
 
     # SECTION : SHM Lifecycle & Teardown
-    
+
     def close(self):
         """
         Release this process's connection to the shared memory.
         """
-        self.shm.close()
+
+        if not self._closed:
+            self.shm.close()
+            self._closed = True
 
     def destroy(self):
         """
@@ -211,4 +226,5 @@ class SharedState:
         Only invoke this once every client has departed and no process remains bound to its lingering presence.
         """
 
-        self.shm.unlink()
+        if not self._closed:
+            self.shm.unlink()

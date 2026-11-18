@@ -1,4 +1,3 @@
-
 from shared_state import SharedState
 import time
 

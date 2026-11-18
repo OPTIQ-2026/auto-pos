@@ -8,14 +8,16 @@ try:
     # Create and initialize the shared memory segment.
     shm = SharedState(create=True)
 
-    print("SHM successfully created.")
+    try:
+        print("SHM successfully created.")
 
-    # Verify the initial state of the shared variables.
-    print("targetLocation =", shm.read("targetLocation"))
-    print("currentLocation =", shm.read("currentLocation"))
+        # Verify the initial state of the shared variables.
+        print("targetLocation =", shm.read("targetLocation"))
+        print("currentLocation =", shm.read("currentLocation"))
 
-    # Release the initialization process's connection.
-    shm.close()
+    finally:
+        # Release the initialization process's connection.
+        shm.close()
 
 
 # Handle attempts to create an already existing SHM segment.
