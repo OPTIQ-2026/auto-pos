@@ -1,0 +1,1 @@
+print("Lancement de la camera")
