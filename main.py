@@ -19,9 +19,9 @@ SHM_LAUNCHER = SHM_DIRECTORY / "launch_shm.py"
 
 # Register the available programs and their corresponding scripts.
 PROGRAMS = {
-    "camera": SOURCES_DIRECTORY / "camera" / "camera.py",
-    "stepper": SOURCES_DIRECTORY / "stepper" / "stage.py",
-    "interface": SOURCES_DIRECTORY / "interface" / "interface.py",
+    "camera": SOURCES_DIRECTORY / "camera" / "main_camera.py",
+    "stepper": SOURCES_DIRECTORY / "stepper" / "main_stepper.py",
+    "interface": SOURCES_DIRECTORY / "interface" / "main_interface.py",
 }
 
 # Store references to all active child processes.
