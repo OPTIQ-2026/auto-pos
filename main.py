@@ -2,91 +2,87 @@
 import argparse
 import subprocess
 import sys
+import os
 import time
 from pathlib import Path
 
 
-# SECTION : Project Configuration & Program Registry
+# ==================================================
+# SECTION 1 : PROJECT CONFIGURATION
+# ==================================================
 
-# Define the project root directory and source locations.
 ROOT_DIRECTORY = Path(__file__).resolve().parent
+
 CONTENT_DIRECTORY = ROOT_DIRECTORY / "content"
 SOURCES_DIRECTORY = CONTENT_DIRECTORY / "sources"
 
-# Define the shared memory initialization script.
 SHM_DIRECTORY = SOURCES_DIRECTORY / "shm"
-SHM_LAUNCHER = SHM_DIRECTORY / "launch_shm.py"
 
-# Register the available programs and their corresponding scripts.
 PROGRAMS = {
     "camera": SOURCES_DIRECTORY / "camera" / "main_camera.py",
     "stepper": SOURCES_DIRECTORY / "stepper" / "main_stepper.py",
     "interface": SOURCES_DIRECTORY / "interface" / "main_interface.py",
 }
 
-# Store references to all active child processes.
+# Active child processes
 processes = []
 
+# Indicates whether SHM initialization succeeded
+shm_initialized = False
 
-# SECTION : SHM Initialization & Setup
+
+# Make the sources directory importable.
+# This allows child programs to import the shm package
+# and their sibling packages.
+if str(SOURCES_DIRECTORY) not in sys.path:
+    sys.path.insert(0, str(SOURCES_DIRECTORY))
+
+from shm.shm_manager import _initialize, _unlink_all
+
+
+# ==================================================
+# SECTION 2 : SHARED MEMORY INITIALIZATION
+# ==================================================
 
 def initialize_shm():
     """
-    Initialize the shared memory before launching any program.
+    Initialize shared memory directly from the main process.
 
-    Executes the dedicated SHM initialization script as a separate
-    process and waits for its completion.
-
-    Raises a FileNotFoundError if the initialization script
-    cannot be located, or a RuntimeError if initialization fails.
+    No separate SHM launcher process is required.
     """
+
+    global shm_initialized
 
     print("\n[MAIN] Initializing shared memory...")
 
-    # Validate the existence of the SHM initialization script.
-    if not SHM_LAUNCHER.is_file():
+    if not SHM_DIRECTORY.is_dir():
         raise FileNotFoundError(
-            f"SHM initialization script not found: {SHM_LAUNCHER}"
+            f"SHM directory not found: {SHM_DIRECTORY}"
         )
 
-    # Execute the initialization script and wait for completion.
-    result = subprocess.run(
-        [sys.executable, str(SHM_LAUNCHER)],
-        cwd=SHM_DIRECTORY
-    )
+    _initialize()
 
-    # Validate the initialization process exit status.
-    if result.returncode != 0:
-        raise RuntimeError(
-            "Shared memory initialization failed."
-        )
+    shm_initialized = True
 
     print("[MAIN] Shared memory initialized successfully.\n")
 
 
-# SECTION : Program Launching & Process Registration
+# ==================================================
+# SECTION 3 : PROGRAM LAUNCHING
+# ==================================================
 
 def launch_program(name):
     """
-    Launch a registered Python program as an independent process.
-
-    Resolves the requested program name, validates its script path
-    and starts a new Python interpreter using subprocess.Popen.
-
-    Stores the resulting process reference for subsequent
-    monitoring and lifecycle management.
+    Launch a registered program as an independent process.
     """
 
-    # Normalize the requested program name.
     name = name.lower().removesuffix(".py")
 
-    # Validate the requested program against the registry.
     if name not in PROGRAMS:
         raise ValueError(f"Unknown program: {name}")
 
     script = PROGRAMS[name]
 
-    # Validate the existence of the requested Python script.
     if not script.is_file():
         raise FileNotFoundError(
             f"Program script not found: {script}"
@@ -94,28 +90,40 @@ def launch_program(name):
 
     print(f"[MAIN] Launching {name}...")
 
-    # Start the program in an independent Python process.
-    process = subprocess.Popen(
-        [sys.executable, str(script)],
-        cwd=script.parent
+    # Ensure child processes can import packages from sources.
+    environment = os.environ.copy()
+
+    existing_pythonpath = environment.get("PYTHONPATH", "")
+
+    environment["PYTHONPATH"] = (
+        str(SOURCES_DIRECTORY)
+        + os.pathsep
+        + existing_pythonpath
     )
 
-    # Register the process for subsequent monitoring.
+    process = subprocess.Popen(
+        [sys.executable, str(script)],
+        cwd=SOURCES_DIRECTORY,
+        env=environment,
+    )
+
     processes.append((name, process))
 
-    print(f"[MAIN] {name} launched (PID: {process.pid})")
+    print(
+        f"[MAIN] {name} launched "
+        f"(PID: {process.pid})"
+    )
 
 
-# SECTION : Process Monitoring & Synchronization
+# ==================================================
+# SECTION 4 : PROCESS MONITORING
+# ==================================================
 
 def monitor():
     """
-    Monitor all registered child processes.
+    Monitor all child processes.
 
-    Periodically checks the execution status of every process.
-
-    Returns when one of the programs terminates, allowing the
-    main execution flow to initiate a coordinated shutdown.
+    Returns as soon as one program terminates.
     """
 
     print("\n[MAIN] All programs are running.")
@@ -123,13 +131,12 @@ def monitor():
 
     while True:
 
-        # Check the execution status of every registered process.
         for name, process in processes:
 
             return_code = process.poll()
 
-            # Detect unexpected or normal process termination.
             if return_code is not None:
+
                 print(
                     f"[MAIN] {name} terminated "
                     f"(exit code: {return_code})."
@@ -137,22 +144,19 @@ def monitor():
 
                 return
 
-        # Avoid continuous polling and unnecessary CPU usage.
         time.sleep(0.2)
 
-# SECTION : Process Lifecycle & Teardown
+
+# ==================================================
+# SECTION 5 : PROCESS SHUTDOWN
+# ==================================================
 
 def stop_all():
     """
-    Stop all registered child processes.
+    Stop all active child processes.
 
-    First requests a graceful termination for every active process.
-
-    Waits for each process to exit and forcibly terminates any
-    process that does not respond within the allocated timeout.
-
-    Does not destroy the shared memory segment, as its lifecycle
-    remains independent from the child process management.
+    First requests graceful termination, then forces
+    termination if a process does not respond.
     """
 
     if not processes:
@@ -160,51 +164,76 @@ def stop_all():
 
     print("\n[MAIN] Stopping all programs...")
 
-    # Request graceful termination of all active processes.
+    # Request termination of every active process.
     for name, process in processes:
 
         if process.poll() is None:
+
             print(f"[MAIN] Stopping {name}...")
+
             process.terminate()
 
-    # Wait for process termination and enforce the timeout.
+    # Wait for termination, with a timeout.
     for name, process in processes:
 
-        if process.poll() is None:
+        try:
+            process.wait(timeout=5)
 
-            try:
-                process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
 
-            except subprocess.TimeoutExpired:
+            print(
+                f"[MAIN] Forcing termination of {name}..."
+            )
 
-                print(f"[MAIN] Forcing termination of {name}...")
-
-                process.kill()
-                process.wait()
+            process.kill()
+            process.wait()
 
     print("[MAIN] All programs have been stopped.")
 
 
-# SECTION : Main Execution & Command-Line Interface
+# ==================================================
+# SECTION 6 : SHARED MEMORY CLEANUP
+# ==================================================
+
+def cleanup_shm():
+    """
+    Remove shared memory after all child processes
+    have terminated.
+    """
+
+    global shm_initialized
+
+    if not shm_initialized:
+        return
+
+    print("\n[MAIN] Cleaning shared memory...")
+
+    try:
+        _unlink_all()
+
+        shm_initialized = False
+
+        print("[MAIN] Shared memory cleaned successfully.")
+
+    except Exception as error:
+
+        print(
+            f"[MAIN] SHM cleanup error: {error}"
+        )
+
+        raise
+
+
+# ==================================================
+# SECTION 7 : MAIN EXECUTION
+# ==================================================
 
 def main():
-    """
-    Execute the central program manager.
 
-    Parses the requested programs from command-line arguments,
-    initializes shared memory, launches the selected programs
-    and monitors their execution.
-
-    Ensures that all child processes are stopped when the main
-    execution ends, whether normally or following an exception.
-    """
-
-    # Configure the command-line argument parser.
     parser = argparse.ArgumentParser(
         description="Central manager for project programs."
     )
 
-    # Accept one or multiple program names.
     parser.add_argument(
         "programs",
         nargs="+",
@@ -215,30 +244,31 @@ def main():
 
     try:
 
-        # Initialize shared memory before launching any program.
+        # 1. Initialize shared memory
         initialize_shm()
 
-        # Launch all requested programs.
+        # 2. Launch requested programs
         for name in args.programs:
             launch_program(name)
 
-        # Monitor the execution of all active processes.
+        # 3. Monitor their execution
         monitor()
 
     except KeyboardInterrupt:
 
-        # Handle user interruption through CTRL+C.
         print("\n[MAIN] User interruption detected.")
 
     except Exception as error:
 
-        # Report execution errors.
         print(f"\n[MAIN] ERROR: {error}")
 
     finally:
 
-        # Ensure coordinated termination of all child processes.
+        # 4. Stop all child processes first
         stop_all()
+
+        # 5. Remove shared memory only after children stop
+        cleanup_shm()
 
 
 if __name__ == "__main__":
