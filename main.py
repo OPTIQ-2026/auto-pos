@@ -1,4 +1,3 @@
-
 import argparse
 import subprocess
 import sys
@@ -7,9 +6,7 @@ import time
 from pathlib import Path
 
 
-# ==================================================
 # SECTION 1 : PROJECT CONFIGURATION
-# ==================================================
 
 ROOT_DIRECTORY = Path(__file__).resolve().parent
 
@@ -32,22 +29,18 @@ shm_initialized = False
 
 
 # Make the sources directory importable.
-# This allows child programs to import the shm package
-# and their sibling packages.
+# This allows child programs to import the shm package and their sibling packages.
 if str(SOURCES_DIRECTORY) not in sys.path:
     sys.path.insert(0, str(SOURCES_DIRECTORY))
 
 from shm.shm_manager import _initialize, _unlink_all
 
 
-# ==================================================
 # SECTION 2 : SHARED MEMORY INITIALIZATION
-# ==================================================
 
 def initialize_shm():
     """
     Initialize shared memory directly from the main process.
-
     No separate SHM launcher process is required.
     """
 
@@ -67,9 +60,7 @@ def initialize_shm():
     print("[MAIN] Shared memory initialized successfully.\n")
 
 
-# ==================================================
 # SECTION 3 : PROGRAM LAUNCHING
-# ==================================================
 
 def launch_program(name):
     """
@@ -115,14 +106,12 @@ def launch_program(name):
     )
 
 
-# ==================================================
 # SECTION 4 : PROCESS MONITORING
-# ==================================================
+
 
 def monitor():
     """
     Monitor all child processes.
-
     Returns as soon as one program terminates.
     """
 
@@ -147,16 +136,12 @@ def monitor():
         time.sleep(0.2)
 
 
-# ==================================================
 # SECTION 5 : PROCESS SHUTDOWN
-# ==================================================
 
 def stop_all():
     """
     Stop all active child processes.
-
-    First requests graceful termination, then forces
-    termination if a process does not respond.
+    First requests graceful termination, then forces termination if a process does not respond.
     """
 
     if not processes:
@@ -191,14 +176,11 @@ def stop_all():
     print("[MAIN] All programs have been stopped.")
 
 
-# ==================================================
 # SECTION 6 : SHARED MEMORY CLEANUP
-# ==================================================
 
 def cleanup_shm():
     """
-    Remove shared memory after all child processes
-    have terminated.
+    Remove shared memory after all child processes have terminated.
     """
 
     global shm_initialized
@@ -224,34 +206,26 @@ def cleanup_shm():
         raise
 
 
-# ==================================================
 # SECTION 7 : MAIN EXECUTION
-# ==================================================
 
 def main():
 
-    parser = argparse.ArgumentParser(
-        description="Central manager for project programs."
-    )
+    parser = argparse.ArgumentParser(description="Central manager for project programs.")
 
-    parser.add_argument(
-        "programs",
-        nargs="+",
-        help="Programs to launch: camera, stepper, interface"
-    )
+    parser.add_argument("programs", nargs="+", help="Programs to launch: camera, stepper, interface")
 
     args = parser.parse_args()
 
     try:
 
-        # 1. Initialize shared memory
+        # Initialize shared memory
         initialize_shm()
 
-        # 2. Launch requested programs
+        # Launch requested programs
         for name in args.programs:
             launch_program(name)
 
-        # 3. Monitor their execution
+        # Monitor their execution
         monitor()
 
     except KeyboardInterrupt:
@@ -264,10 +238,10 @@ def main():
 
     finally:
 
-        # 4. Stop all child processes first
+        # Stop all child processes first
         stop_all()
 
-        # 5. Remove shared memory only after children stop
+        # Remove shared memory only after children stop
         cleanup_shm()
 
 

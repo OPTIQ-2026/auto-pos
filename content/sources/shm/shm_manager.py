@@ -12,10 +12,6 @@ from filelock import FileLock
 from .shm_config import SHARED_VARIABLES, SHM_PREFIX
 
 
-# --------------------------------------------------
-# Configuration interne
-# --------------------------------------------------
-
 HEADER_SIZE = 8
 
 LOCK_DIRECTORY = os.path.join(
@@ -30,10 +26,6 @@ _created = {}
 _current_pid = os.getpid()
 
 
-# --------------------------------------------------
-# Compatibilité Python
-# --------------------------------------------------
-
 def _open_shared_memory(**kwargs):
     """
     Python 3.13+ accepte track=False.
@@ -47,10 +39,6 @@ def _open_shared_memory(**kwargs):
 
     return shared_memory.SharedMemory(**kwargs)
 
-
-# --------------------------------------------------
-# Gestion des noms
-# --------------------------------------------------
 
 def _shm_name(variable):
     digest = hashlib.sha256(
@@ -78,14 +66,9 @@ def _lock(variable):
     return FileLock(_lock_path(variable))
 
 
-# --------------------------------------------------
-# Gestion des processus
-# --------------------------------------------------
-
 def _check_process():
     """
-    Si le processus a changé (fork), on ferme ses
-    connexions héritées et on repart avec un cache vide.
+    Si le processus a changé (fork), on ferme ses connexions héritées et on repart avec un cache vide.
     """
 
     global _current_pid
@@ -104,10 +87,6 @@ def _check_process():
         _current_pid = pid
 
 
-# --------------------------------------------------
-# Vérification des variables
-# --------------------------------------------------
-
 def _check_variable(variable):
 
     if variable not in SHARED_VARIABLES:
@@ -116,10 +95,6 @@ def _check_variable(variable):
             "dans SHARED_VARIABLES."
         )
 
-
-# --------------------------------------------------
-# Connexion à la mémoire partagée
-# --------------------------------------------------
 
 def _attach(variable):
 
@@ -136,15 +111,10 @@ def _attach(variable):
     return _connections[variable]
 
 
-# --------------------------------------------------
-# Initialisation
-# --------------------------------------------------
-
 def _initialize():
     """
     Initialise tous les segments partagés.
-    À appeler une seule fois dans le processus principal,
-    avant de lancer les processus enfants.
+    À appeler une seule fois dans le processus principal, avant de lancer les processus enfants.
     """
 
     _check_process()
@@ -205,10 +175,6 @@ def _initialize():
         raise
 
 
-# --------------------------------------------------
-# Lecture
-# --------------------------------------------------
-
 def _read(variable):
     """
     Lecture exclusive d'une variable partagée.
@@ -238,10 +204,6 @@ def _read(variable):
 
         return pickle.loads(data)
 
-
-# --------------------------------------------------
-# Écriture
-# --------------------------------------------------
 
 def _write(variable, value):
     """
@@ -275,10 +237,6 @@ def _write(variable, value):
         )
 
 
-# --------------------------------------------------
-# Fermeture des connexions locales
-# --------------------------------------------------
-
 def _close_all():
 
     _check_process()
@@ -288,10 +246,6 @@ def _close_all():
 
     _connections.clear()
 
-
-# --------------------------------------------------
-# Suppression de la mémoire partagée
-# --------------------------------------------------
 
 def _unlink_all():
     """
