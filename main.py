@@ -49,9 +49,7 @@ def initialize_shm():
     print("\n[MAIN] Initializing shared memory...")
 
     if not SHM_DIRECTORY.is_dir():
-        raise FileNotFoundError(
-            f"SHM directory not found: {SHM_DIRECTORY}"
-        )
+        raise FileNotFoundError(f"SHM directory not found: {SHM_DIRECTORY}")
 
     _initialize()
 
@@ -75,9 +73,7 @@ def launch_program(name):
     script = PROGRAMS[name]
 
     if not script.is_file():
-        raise FileNotFoundError(
-            f"Program script not found: {script}"
-        )
+        raise FileNotFoundError(f"Program script not found: {script}")
 
     print(f"[MAIN] Launching {name}...")
 
@@ -86,17 +82,9 @@ def launch_program(name):
 
     existing_pythonpath = environment.get("PYTHONPATH", "")
 
-    environment["PYTHONPATH"] = (
-        str(SOURCES_DIRECTORY)
-        + os.pathsep
-        + existing_pythonpath
-    )
+    environment["PYTHONPATH"] = (str(SOURCES_DIRECTORY) + os.pathsep + existing_pythonpath)
 
-    process = subprocess.Popen(
-        [sys.executable, str(script)],
-        cwd=SOURCES_DIRECTORY,
-        env=environment,
-    )
+    process = subprocess.Popen([sys.executable, str(script)], cwd=SOURCES_DIRECTORY, env=environment)
 
     processes.append((name, process))
 
@@ -166,9 +154,7 @@ def stop_all():
 
         except subprocess.TimeoutExpired:
 
-            print(
-                f"[MAIN] Forcing termination of {name}..."
-            )
+            print(f"[MAIN] Forcing termination of {name}...")
 
             process.kill()
             process.wait()
@@ -199,9 +185,7 @@ def cleanup_shm():
 
     except Exception as error:
 
-        print(
-            f"[MAIN] SHM cleanup error: {error}"
-        )
+        print(f"[MAIN] SHM cleanup error: {error}")
 
         raise
 
