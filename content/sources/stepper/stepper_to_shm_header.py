@@ -9,6 +9,16 @@ Chacun doit y déclarer ses propres variables globales destinées à être écha
 Plus tard on se chargera de ne modifier que les fonctions en bas du fichier pour communiquer avec le shm.
 """
 
+from pathlib import Path
+import sys
+
+# SECTION 0 : SHM Interface Import
+
+SHM_DIRECTORY = (Path(__file__).resolve().parent.parent / "shm")
+sys.path.insert(0, str(SHM_DIRECTORY))
+
+from shared_state import SharedState
+
 # SECTION 1 : VARIABLES QUI SERONT A PARTAGER (EXEMPLES)
 
 stepper_value = True
