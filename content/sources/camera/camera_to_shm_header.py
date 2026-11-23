@@ -42,6 +42,7 @@ def get(nom_variable):
         raise NameError(f"Variable inconnue : {nom_variable}")
 
     return globals()[nom_variable]
+    # return _read(nom_variable)
 
 
 def set(nom_variable, new_value):
@@ -51,3 +52,4 @@ def set(nom_variable, new_value):
         raise NameError(f"Variable inconnue : {nom_variable}")
 
     globals()[nom_variable] = new_value
+    # _write(nom_variable, new_value)
