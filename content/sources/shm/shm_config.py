@@ -21,6 +21,6 @@ SHARED_VARIABLES = {
 
     "camera_image": {
         "initial_value": None,
-        "size": 10 * 1024 * 1024,
+        "size": 10 * DEFAULT_SHM_SIZE,
     },
 }
