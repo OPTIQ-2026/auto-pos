@@ -131,7 +131,6 @@ def stop_all():
     # Request termination of every active process.
     for name, process in processes:
         if process.poll() is None:
-
             print(f"[MAIN] Stopping {name}...")
 
             process.terminate()
@@ -173,7 +172,6 @@ def cleanup_shm():
         print("[MAIN] Shared memory cleaned successfully.")
 
     except Exception as error:
-
         print(f"[MAIN] SHM cleanup error: {error}")
 
         raise
@@ -182,7 +180,6 @@ def cleanup_shm():
 # SECTION 7 : MAIN EXECUTION
 
 def main():
-
     parser = argparse.ArgumentParser(description="Central manager for project programs.")
 
     parser.add_argument("programs", nargs="+", help="Programs to launch: camera, stepper, interface")
@@ -201,15 +198,12 @@ def main():
         monitor()
 
     except KeyboardInterrupt:
-
         print("\n[MAIN] User interruption detected.")
 
     except Exception as error:
-
         print(f"\n[MAIN] ERROR: {error}")
 
     finally:
-
         # Stop all child processes first
         stop_all()
 
