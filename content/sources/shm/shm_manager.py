@@ -141,27 +141,17 @@ def _initialize():
             with _lock(variable):
 
                 try:
-                    shm = _open_shared_memory(
-                        name=_shm_name(variable),
-                        create=True,
-                        size=config["size"]
-                    )
+                    shm = _open_shared_memory(name=_shm_name(variable), create=True, size=config["size"])
 
                 except FileExistsError:
-                    raise RuntimeError(
-                        f"Shared memory segment '{_shm_name(variable)}' already exists. "
-                        "A previous instance may still be running."
-                    )
+                    raise RuntimeError(f"Shared memory segment '{_shm_name(variable)}' already exists. A previous instance may still be running.")
 
                 _connections[variable] = shm
                 _created[variable] = shm.name
 
                 # Python objects must be serialized before they can be stored as bytes.
                 # Pickle allows us to store different types of values in shared memory.
-                data = pickle.dumps(
-                    config["initial_value"],
-                    protocol=pickle.HIGHEST_PROTOCOL
-                )
+                data = pickle.dumps(config["initial_value"], protocol=pickle.HIGHEST_PROTOCOL)
 
                 if len(data) + HEADER_SIZE > shm.size:
                     raise ValueError(f"Initial value is too large: {variable}")
