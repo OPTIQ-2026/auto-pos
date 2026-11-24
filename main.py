@@ -104,16 +104,11 @@ def monitor():
     print("[MAIN] Press CTRL+C to stop all programs.\n")
 
     while True:
-
         for name, process in processes:
             return_code = process.poll()
 
             if return_code is not None:
-
-                print(
-                    f"[MAIN] {name} terminated "
-                    f"(exit code: {return_code})."
-                )
+                print(f"[MAIN] {name} terminated (exit code: {return_code}).")
 
                 return
 
