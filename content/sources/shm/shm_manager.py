@@ -1,4 +1,3 @@
-
 import os
 import pickle
 import hashlib
@@ -139,7 +138,6 @@ def _initialize():
 
             # Prevent multiple processes from creating the same segment simultaneously.
             with _lock(variable):
-
                 try:
                     shm = _open_shared_memory(name=_shm_name(variable), create=True, size=config["size"])
 
@@ -181,7 +179,6 @@ def _read(variable):
     _check_variable(variable)
 
     with _lock(variable):
-
         shm = _attach(variable)
 
         # Read the data size stored in the header.
@@ -212,7 +209,6 @@ def _write(variable, value):
     data = pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL)
 
     with _lock(variable):
-
         shm = _attach(variable)
 
         # Make sure the serialized value fits in the allocated segment.
@@ -257,7 +253,6 @@ def _unlink_all():
 
         # Prevent other processes from accessing the segment during cleanup.
         with _lock(variable):
-
             shm = _connections.get(variable)
             temporary_connection = False
 

@@ -1,4 +1,3 @@
-
 DEFAULT_SHM_SIZE = 1024 * 1024  # 1 Mo
 
 SHM_PREFIX = "auto-pos-shm"

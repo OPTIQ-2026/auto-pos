@@ -88,10 +88,7 @@ def launch_program(name):
 
     processes.append((name, process))
 
-    print(
-        f"[MAIN] {name} launched "
-        f"(PID: {process.pid})"
-    )
+    print(f"[MAIN] {name} launched (PID: {process.pid})")
 
 
 # SECTION 4 : PROCESS MONITORING
@@ -109,7 +106,6 @@ def monitor():
     while True:
 
         for name, process in processes:
-
             return_code = process.poll()
 
             if return_code is not None:
@@ -139,7 +135,6 @@ def stop_all():
 
     # Request termination of every active process.
     for name, process in processes:
-
         if process.poll() is None:
 
             print(f"[MAIN] Stopping {name}...")
@@ -148,7 +143,6 @@ def stop_all():
 
     # Wait for termination, with a timeout.
     for name, process in processes:
-
         try:
             process.wait(timeout=5)
 
@@ -201,7 +195,6 @@ def main():
     args = parser.parse_args()
 
     try:
-
         # Initialize shared memory
         initialize_shm()
 
