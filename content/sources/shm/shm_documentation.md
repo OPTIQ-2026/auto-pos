@@ -1,6 +1,27 @@
 # Documentation technique — SHM
 **Projet : Auto-Pos**
 
+# 0. Pourquoi utiliser du SHM dans le projet ?
+
+Le projet Auto-Pos repose sur plusieurs processus indépendants, notamment :
+- Le traitement des images de la caméra.
+- Le contrôle des steppers.
+- La gestion de l'interface utilisateur.
+
+Ces processus doivent pouvoir échanger des données en temps réel sans être directement dépendants les uns des autres.
+
+Le **Shared Memory (SHM)** permet de mettre à disposition une zone mémoire commune à plusieurs processus. Chaque processus peut ainsi lire et écrire les données nécessaires à son fonctionnement.
+
+### Avantages dans le projet
+
+- **Communication centralisée :** tous les processus utilisent une même source de données.
+- **Faible latence :** les données sont accessibles directement depuis la mémoire partagée, sans passer par un échange réseau ou une communication par messages.
+- **Échange de données volumineuses :** possibilité de transmettre des images ou d'autres données binaires.
+- **Découplage des modules :** chaque programme utilise le SHM sans avoir besoin de connaître l'implémentation interne des autres programmes.
+- **Synchronisation :** les verrous permettent de contrôler les accès concurrents aux variables partagées.
+
+**Choix technique :** la mémoire partagée a été retenue pour centraliser les échanges interprocessus, limiter les coûts de communication et faciliter l'intégration indépendante des différents modules.
+
 ## 1. Structure du projet
 
 ### 1.1 Organisation des fichiers
