@@ -1,4 +1,4 @@
-# Documentation technique — SHM
+# Documentation technique - SHM
 **Projet : Auto-Pos**
 
 # 0. Pourquoi utiliser du SHM dans le projet ?
@@ -44,7 +44,7 @@ Le **Shared Memory (SHM)** permet de mettre à disposition une zone mémoire com
 
 ---
 
-## 2. Configuration — `shm_config.py`
+## 2. Configuration - `shm_config.py`
 
 ### 2.1 Déclaration des variables
 
@@ -88,7 +88,7 @@ La taille doit être adaptée au volume maximal des données à stocker.
 
 ---
 
-## 3. Gestionnaire — `shm_manager.py`
+## 3. Gestionnaire - `shm_manager.py`
 
 ### 3.1 Dépendances
 
@@ -206,7 +206,7 @@ Les fonctions internes du gestionnaire sont les suivantes :
 | `_close_all()` | Ferme les connexions locales |
 | `_unlink_all()` | Supprime les segments créés par le processus principal |
 
-### 4.1 Initialisation — `_initialize()`
+### 4.1 Initialisation - `_initialize()`
 
 - Vérifie l'état du gestionnaire.
 - Crée le dossier des verrous.
@@ -216,7 +216,7 @@ Les fonctions internes du gestionnaire sont les suivantes :
 
 Une erreur pendant l'initialisation entraîne le nettoyage des segments créés pendant cette tentative.
 
-### 4.2 Lecture — `_read(variable)`
+### 4.2 Lecture - `_read(variable)`
 
 1. Vérifie que la variable est déclarée.
 2. Acquiert son verrou.
@@ -226,7 +226,7 @@ Une erreur pendant l'initialisation entraîne le nettoyage des segments créés 
 6. Récupère les données.
 7. Désérialise et retourne la valeur.
 
-### 4.3 Écriture — `_write(variable, value)`
+### 4.3 Écriture - `_write(variable, value)`
 
 1. Vérifie que la variable est déclarée.
 2. Sérialise la valeur.
