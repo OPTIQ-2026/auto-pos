@@ -3,6 +3,8 @@ DEFAULT_SHM_SIZE = 1024 * 1024  # 1 Mo
 
 SHM_PREFIX = "auto-pos-shm"
 
+# Everything here is for illustrative purposes.
+
 SHARED_VARIABLES = {
     "temperature": {
         "initial_value": 20.0,
